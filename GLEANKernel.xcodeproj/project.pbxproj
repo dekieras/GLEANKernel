@@ -176,7 +176,6 @@
 		B78D0BD3163F01FF0040A8C3 /* GLEANKernel.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = B78D0A4B163EFAD50040A8C3 /* GLEANKernel.framework */; };
 		B7D4D7011D219FD200F403EA /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = B7D4D7001D219FD200F403EA /* Info.plist */; };
 		B7D4D7041D219FFA00F403EA /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B7D4D7021D219FFA00F403EA /* InfoPlist.strings */; };
-		B7D4D7061D21ACD400F403EA /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = B7D4D7051D21ACD400F403EA /* LICENSE.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -366,7 +365,6 @@
 		B7D4D6FE1D219D1D00F403EA /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = GLEANkernel/Info.plist; sourceTree = SOURCE_ROOT; };
 		B7D4D7001D219FD200F403EA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = GLEANKernel/Info.plist; sourceTree = "<group>"; };
 		B7D4D7031D219FFA00F403EA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = GLEANKernel/en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		B7D4D7051D21ACD400F403EA /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LICENSE.txt; path = GLEANkernel/LICENSE.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -385,7 +383,6 @@
 			children = (
 				B7D4D7021D219FFA00F403EA /* InfoPlist.strings */,
 				B7D4D7001D219FD200F403EA /* Info.plist */,
-				B7D4D7051D21ACD400F403EA /* LICENSE.txt */,
 				B78D0A54163EFAD50040A8C3 /* GLEANKernel */,
 				B78D0A4D163EFAD50040A8C3 /* Frameworks */,
 				B78D0A4C163EFAD50040A8C3 /* Products */,
@@ -837,7 +834,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B7D4D7061D21ACD400F403EA /* LICENSE.txt in Resources */,
 				B7D4D7041D219FFA00F403EA /* InfoPlist.strings in Resources */,
 				B7D4D7011D219FD200F403EA /* Info.plist in Resources */,
 			);
