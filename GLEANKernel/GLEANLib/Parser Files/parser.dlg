@@ -1,0 +1,708 @@
+<<
+/* parser.dlg -- DLG Description of scanner
+ *
+ * Generated from: GOMSL.txt
+ *
+ * Terence Parr, Will Cohen, and Hank Dietz: 1989-2001
+ * Purdue University Electrical Engineering
+ * With AHPCRC, University of Minnesota
+ * ANTLR Version 1.33MR33
+ */
+
+#define ANTLR_VERSION	13333
+#include "tokens.h"
+#include "AToken.h"
+
+#include "Symbol.h"
+#include "Smart_Pointer.h"
+#include "GOMS_Model.h"
+#include "GOMS_Control_Operators.h"
+#include "GOMS_Predicates.h"
+#include "GOMS_Memory_Operators.h"
+#include "GOMS_Task_Operators.h"
+#include "GOMS_Manual_Operators.h"
+#include "GOMS_Vocal_Operators.h"
+#include "GOMS_High_Level_Operators.h"
+#include "Output_tee_globals.h"
+
+#include <iostream>
+using std::endl;
+
+// GOMS_Model_Sptr_t parse_GOMSL_file(char * filename);	// main function prototype
+
+  
+>>
+
+<<%%parserclass GOMSL_parser>>
+
+
+%%START
+
+@
+	<<
+		return (ANTLRTokenType)1;
+	>>
+
+\r
+	<<
+    skip(); newline();  
+		return NLR;
+	>>
+
+[\ \t]
+	<<
+    skip();  
+		return (ANTLRTokenType)3;
+	>>
+
+\n
+	<<
+    skip(); newline();  
+		return NLN;
+	>>
+
+/ /
+	<<
+    skip(); mode(CPP_STYLE_COMMENT);  
+		return (ANTLRTokenType)5;
+	>>
+
+/ \*
+	<<
+    skip(); mode(C_STYLE_COMMENT);  
+		return (ANTLRTokenType)6;
+	>>
+
+ \" 
+	<<
+    skip(); mode(QUOTED_STRING);  
+		return (ANTLRTokenType)7;
+	>>
+
+Define_model
+	<<
+		return DEFMODEL;
+	>>
+
+Starting_goal
+	<<
+		return STARTING_GOAL;
+	>>
+
+LTM_item
+	<<
+		return DEFLTM;
+	>>
+
+Task_item
+	<<
+		return DEFTASK;
+	>>
+
+Initial_WM_contents
+	<<
+		return DEFWM;
+	>>
+
+Visual_object
+	<<
+		return DEFVISUAL;
+	>>
+
+Auditory_encoding
+	<<
+		return DEFAUDITORY;
+	>>
+
+Method_for_goal | MFG
+	<<
+		return MFG;
+	>>
+
+using
+	<<
+		return USING;
+	>>
+
+On_error
+	<<
+		return ONERROR;
+	>>
+
+Step
+	<<
+		return STEP;
+	>>
+
+Selection_rules_for_goal | SRFG
+	<<
+		return SRFG;
+	>>
+
+Interrupt_rules
+	<<
+		return IRS;
+	>>
+
+Accomplish_goal | AG
+	<<
+		return AG;
+	>>
+
+Also_accomplish_goal | AAG
+	<<
+		return AAG;
+	>>
+
+Return_with_goal_accomplished | RGA
+	<<
+		return RGA;
+	>>
+
+Abort_and_restart
+	<<
+		return AAR;
+	>>
+
+Resume
+	<<
+		return RESUME;
+	>>
+
+Raise
+	<<
+		return RAISE;
+	>>
+
+Stop_with_message
+	<<
+		return STOP;
+	>>
+
+accomplishing_goal
+	<<
+		return ACCOMPLISHING_GOAL;
+	>>
+
+Go_to | Goto
+	<<
+		return GOTO;
+	>>
+
+Decide
+	<<
+		return DECIDE;
+	>>
+
+If
+	<<
+		return IF;
+	>>
+
+Then | then
+	<<
+		return THEN;
+	>>
+
+Else
+	<<
+		return ELSE;
+	>>
+
+Exists
+	<<
+		return EXISTS;
+	>>
+
+is
+	<<
+		return IS;
+	>>
+
+is_equal_to
+	<<
+		return IS_EQUAL_TO;
+	>>
+
+is_not
+	<<
+		return IS_NOT;
+	>>
+
+is_not_equal_to
+	<<
+		return IS_NOT_EQUAL_TO;
+	>>
+
+is_greater_than
+	<<
+		return IS_GREATER_THAN;
+	>>
+
+is_greater_than_or_equal_to
+	<<
+		return IS_GREATER_THAN_OR_EQUAL_TO;
+	>>
+
+is_less_than
+	<<
+		return IS_LESS_THAN;
+	>>
+
+is_less_than_or_equal_to
+	<<
+		return IS_LESS_THAN_OR_EQUAL_TO;
+	>>
+
+and
+	<<
+		return AND;
+	>>
+
+of
+	<<
+		return OF;
+	>>
+
+as
+	<<
+		return AS;
+	>>
+
+at
+	<<
+		return AT;
+	>>
+
+.
+	<<
+		return PERIOD;
+	>>
+
+:
+	<<
+		return COLON;
+	>>
+
+;
+	<<
+		return SEMICOLON;
+	>>
+
+,
+	<<
+		return COMMA;
+	>>
+
+\[
+	<<
+		return LBRACKET;
+	>>
+
+\]
+	<<
+		return RBRACKET;
+	>>
+
+\(
+	<<
+		return LPAREN;
+	>>
+
+\)
+	<<
+		return RPAREN;
+	>>
+
+\{
+	<<
+		return LBRACE;
+	>>
+
+\}
+	<<
+		return RBRACE;
+	>>
+
+\<
+	<<
+		return LANGLE;
+	>>
+
+\>
+	<<
+		return RANGLE;
+	>>
+
+Keystroke
+	<<
+		return KEYSTROKE;
+	>>
+
+Type_in
+	<<
+		return TYPE_IN;
+	>>
+
+Home_to
+	<<
+		return HOME_TO;
+	>>
+
+Point_to
+	<<
+		return POINT_TO;
+	>>
+
+Point | Point_to
+	<<
+		return POINT;
+	>>
+
+Hold_down
+	<<
+		return HOLD_DOWN;
+	>>
+
+Release
+	<<
+		return RELEASE;
+	>>
+
+Click
+	<<
+		return CLICK;
+	>>
+
+Double_click
+	<<
+		return DBL_CLICK;
+	>>
+
+Speak
+	<<
+		return SPEAK;
+	>>
+
+Retrieve_from_LTM
+	<<
+		return RLTM;
+	>>
+
+Look_at
+	<<
+		return LOOK_AT;
+	>>
+
+Recall_LTM_item_whose
+	<<
+		return RECALL;
+	>>
+
+Get_task_item_whose
+	<<
+		return GET_TASK;
+	>>
+
+Write_task_item_whose
+	<<
+		return WRITE_TASK;
+	>>
+
+Update_for_task_item
+	<<
+		return UPDATE_TASK;
+	>>
+
+that
+	<<
+		return THAT;
+	>>
+
+Erase_task_item_property
+	<<
+		return ERASE_PROP;
+	>>
+
+Erase_task_item
+	<<
+		return ERASE_OBJECT;
+	>>
+
+Get_from_device
+	<<
+		return GET_DEVICE;
+	>>
+
+Put_to_device
+	<<
+		return PUT_DEVICE;
+	>>
+
+Create_task_list
+	<<
+		return CREATE_TASK_LIST;
+	>>
+
+Erase_task_list
+	<<
+		return ERASE_TASK_LIST;
+	>>
+
+Get_size_of_task_list
+	<<
+		return GET_SIZE_OF;
+	>>
+
+Prepend_item
+	<<
+		return PREPEND_ITEM;
+	>>
+
+Append_item
+	<<
+		return APPEND_ITEM;
+	>>
+
+Insert_item
+	<<
+		return INSERT_ITEM;
+	>>
+
+Find_item_whose
+	<<
+		return FIND_ITEM_WHOSE;
+	>>
+
+Find_first_item_in_task_list
+	<<
+		return FIND_FIRST_ITEM;
+	>>
+
+Find_last_item_in_task_list
+	<<
+		return FIND_LAST_ITEM;
+	>>
+
+Find_item_after
+	<<
+		return FIND_ITEM_AFTER;
+	>>
+
+Find_item_before
+	<<
+		return FIND_ITEM_BEFORE;
+	>>
+
+Remove_item
+	<<
+		return REMOVE_ITEM;
+	>>
+
+Remove_first_item_from_task_list
+	<<
+		return REMOVE_FIRST;
+	>>
+
+Remove_last_item_from_task_list
+	<<
+		return REMOVE_LAST;
+	>>
+
+before
+	<<
+		return BEFORE;
+	>>
+
+after
+	<<
+		return AFTER;
+	>>
+
+from_task_list
+	<<
+		return FROM_TASK_LIST;
+	>>
+
+to_task_list
+	<<
+		return TO_TASK_LIST;
+	>>
+
+in_task_list
+	<<
+		return IN_TASK_LIST;
+	>>
+
+Look_for_object_whose
+	<<
+		return LOOK_FOR;
+	>>
+
+Check_for_visual_object_whose
+	<<
+		return CHECK_VISUAL;
+	>>
+
+Wait_for_visual_object_whose
+	<<
+		return WAIT_VISUAL;
+	>>
+
+Check_for_auditory_object_whose
+	<<
+		return CHECK_AUDITORY;
+	>>
+
+Wait_for_auditory_object_whose
+	<<
+		return WAIT_AUDITORY;
+	>>
+
+Wait_for_any_auditory_object
+	<<
+		return WAIT_ANY_AUDITORY;
+	>>
+
+Store
+	<<
+		return STORE;
+	>>
+
+Delete
+	<<
+		return DELETE;
+	>>
+
+and_store_under
+	<<
+		return AND_STORE_UNDER;
+	>>
+
+under
+	<<
+		return UNDER;
+	>>
+
+Verify | Think_of
+	<<
+		return MENTAL;
+	>>
+
+Log
+	<<
+		return LOG;
+	>>
+
+\< [a-zA-Z][a-zA-Z0-9 _ \- ]* \>
+	<<
+		return TAGNAME;
+	>>
+
+[0-9]+
+	<<
+		return NUMBER;
+	>>
+
+[a-zA-Z] [a-zA-Z0-9 _ \- ]*
+	<<
+		return IDENTIFIER;
+	>>
+
+
+%%C_STYLE_COMMENT
+
+@
+	<<
+		return (ANTLRTokenType)1;
+	>>
+
+\* /
+	<<
+    skip(); mode(START);  
+		return (ANTLRTokenType)114;
+	>>
+
+\n
+	<<
+    skip(); newline();   
+		return NLN;
+	>>
+
+\r
+	<<
+    skip(); newline();   
+		return NLR;
+	>>
+
+~[]
+	<<
+    skip();  
+		return (ANTLRTokenType)115;
+	>>
+
+
+%%CPP_STYLE_COMMENT
+
+@
+	<<
+		return (ANTLRTokenType)1;
+	>>
+
+\n
+	<<
+    skip(); newline(); mode(START);  
+		return NLN;
+	>>
+
+\r
+	<<
+    skip(); newline(); mode(START);  
+		return NLR;
+	>>
+
+~[]
+	<<
+    skip();  
+		return (ANTLRTokenType)116;
+	>>
+
+
+%%QUOTED_STRING
+
+@
+	<<
+		return (ANTLRTokenType)1;
+	>>
+
+ \" \" 
+	<<
+    more(); replchar('\"');  
+		return (ANTLRTokenType)117;
+	>>
+
+\n
+	<<
+    skip(); newline();   
+		return NLN;
+	>>
+
+\r
+	<<
+    skip(); newline();   
+		return NLR;
+	>>
+
+ \" 
+	<<
+    replchar('\0'); mode(START);  
+		return STRING;
+	>>
+
+~[]
+	<<
+    more();  
+		return (ANTLRTokenType)119;
+	>>
+
+%%

@@ -1,0 +1,11 @@
+[puccini:GLEANX/GLEANLib/Parser Files] kieras% /Users/kieras/Documents/Programming/pccts\ 1.33mr33/bin/antlr GOMSL.txt -CC -k 2 -nopurify
+Antlr parser generator   Version 1.33MR33   1989-2001
+GOMSL.txt, line 1187: warning: optional/exit path and alt(s) of (..)* ambiguous upon { SEMICOLON }, { IF }
+GOMSL.txt, line 1188: warning: alts 1 and 2 of {..} ambiguous upon { SEMICOLON }, { ELSE }
+note: use -e3 to get exact information on ambiguous tuples
+[puccini:GLEANX/GLEANLib/Parser Files] kieras% /Users/kieras/Documents/Programming/pccts\ 1.33mr33/bin/dlg -CC parser.dlg -C2 -i
+dlg  Version 1.33MR33   1989-2001
+
+
+antlr GOMSL.txt -CC -k 2 -nopurify
+dlg -CC parser.dlg -C2 -i

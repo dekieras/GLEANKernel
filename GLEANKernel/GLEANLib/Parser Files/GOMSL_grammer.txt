@@ -1,0 +1,2161 @@
+#header <<
+#include "Symbol.h"
+#include "Smart_Pointer.h"
+#include "GOMS_Model.h"
+#include "GOMS_Control_Operators.h"
+#include "GOMS_Predicates.h"
+#include "GOMS_Memory_Operators.h"
+#include "GOMS_Task_Operators.h"
+#include "GOMS_Manual_Operators.h"
+#include "GOMS_Vocal_Operators.h"
+#include "GOMS_High_Level_Operators.h"
+#include "Output_tee_globals.h"
+// GOMS_Model_Sptr_t parse_GOMSL_file(char * filename);	// main function prototype
+
+>>
+ 
+<<
+#include "DLGLexer.h"		/* include definition of DLGLexer.
+				 * This cannot be generated automatically because
+				 * ANTLR has no idea what you will call this file
+				 * with the DLG command-line options.
+				*/
+
+typedef ANTLRCommonToken ANTLRToken;
+
+#include <iostream>
+//#include <assert>
+using namespace std;
+
+GOMS_Model_Sptr_t parse_GOMSL_file(const char * filename);
+
+GOMS_Model_Sptr_t parse_GOMSL_file(const char * filename)
+{
+	ANTLRTokenPtr aToken = new ANTLRToken;
+	FILE * input_file = fopen(filename, "r");
+	if (input_file == NULL) {
+		Normal_out << "Could not open input file: " << filename << endl;
+		return 0;
+		}
+	//assert(input_file != NULL);
+	DLGFileInput in(input_file);
+	DLGLexer scan(&in);
+	ANTLRTokenBuffer pipe(&scan);
+	scan.setToken(mytoken(aToken));
+	GOMSL_parser parser(&pipe);
+	parser.set_file_name(filename);
+	parser.init();
+	GOMS_Model_Sptr_t model_sptr;
+	model_sptr = parser.model();
+	Normal_out << "Parsing done." << endl;
+	fclose(input_file);
+
+	if (model_sptr == 0) {
+		Normal_out << "Discovered " << parser.get_number_of_syntax_errors() << " syntax errors - model is not valid!" << endl;
+		return 0;
+		}
+	else {
+		Normal_out << "Model was parsed successfully." << endl;
+		return model_sptr;
+		}
+}
+
+>>
+
+// mac files use \r as the newline character; pccts does not preserve standard C convention here
+// look for tokens named NLR and NLN. Current both function as new line tokens
+#lexclass START
+#token NL "\r"
+// white space
+#token 	"[\ \t]"			<<skip();>>					// ignore whitespace
+#token 	NLR "\r"			<<skip(); newline();>>		// count line numbers
+#token 	NLN "\n"			<<skip(); newline();>>		// count line numbers
+// C++ style comments
+// #token 	"// ~[ NLR NLN @]* [NLR NLN @]"	<<skip(); newline();>> 	
+
+// call other scanners
+#token 	"/ /"				<<skip(); mode(CPP_STYLE_COMMENT);>>	// start a C-style comment
+#token 	"/ \*"				<<skip(); mode(C_STYLE_COMMENT);>>	// start a C-style comment
+#token 	" \" "				<<skip(); mode(QUOTED_STRING);>>	// start a string - drop the quotes
+
+// Keywords
+// tokens for large units
+#token DEFMODEL	"Define_model"
+#token STARTING_GOAL	"Starting_goal"
+#token DEFLTM	"LTM_item"
+#token DEFTASK	"Task_item"
+#token DEFWM	"Initial_WM_contents"
+#token DEFVISUAL	"Visual_object"
+#token DEFAUDITORY	"Auditory_encoding"
+#token MFG 		"Method_for_goal | MFG"
+#token USING	"using"
+#token ONERROR	"On_error"
+#token STEP		"Step"
+#token SRFG		"Selection_rules_for_goal | SRFG"
+#token IRS		"Interrupt_rules"
+// flow of control operators
+#token AG		"Accomplish_goal | AG"
+#token AAG		"Also_accomplish_goal | AAG"
+#token RGA		"Return_with_goal_accomplished | RGA"
+#token AAR		"Abort_and_restart"
+#token RESUME	"Resume"
+#token RAISE	"Raise"
+#token STOP		"Stop_with_message"
+#token ACCOMPLISHING_GOAL	"accomplishing_goal"
+#token GOTO		"Go_to | Goto"
+#token DECIDE	"Decide"
+#token IF		"If"
+#token THEN		"Then | then"
+#token ELSE		"Else"
+// predicates
+#token EXISTS			"Exists"
+#token IS				"is"
+#token IS_EQUAL_TO		"is_equal_to"
+#token IS_NOT			"is_not"
+#token IS_NOT_EQUAL_TO	"is_not_equal_to"
+#token IS_GREATER_THAN	"is_greater_than"
+#token IS_GREATER_THAN_OR_EQUAL_TO	"is_greater_than_or_equal_to"
+#token IS_LESS_THAN		"is_less_than"
+#token IS_LESS_THAN_OR_EQUAL_TO		"is_less_than_or_equal_to"
+
+// punctuation, function words
+#token AND		"and"
+#token OF		"of"
+#token AS		"as"
+#token AT		"at"
+#token PERIOD	"."
+#token COLON	":"
+#token SEMICOLON ";"
+#token COMMA	","
+#token LBRACKET	"\["
+#token RBRACKET	"\]"
+#token LPAREN	"\("
+#token RPAREN	"\)"
+#token LBRACE	"\{"
+#token RBRACE	"\}"
+#token LANGLE	"\<"
+#token RANGLE	"\>"
+
+// operator keywords
+#token KEYSTROKE		"Keystroke"
+#token TYPE_IN			"Type_in"
+#token HOME_TO			"Home_to"
+#token POINT_TO			"Point_to"
+#token POINT			"Point | Point_to"
+#token HOLD_DOWN		"Hold_down"
+#token RELEASE			"Release"
+#token CLICK			"Click"
+#token DBL_CLICK		"Double_click"
+#token SPEAK			"Speak"
+#token RLTM				"Retrieve_from_LTM"
+#token LOOK_AT			"Look_at"
+#token RECALL			"Recall_LTM_item_whose"
+
+#token GET_TASK			"Get_task_item_whose"
+#token WRITE_TASK		"Write_task_item_whose"
+#token UPDATE_TASK		"Update_for_task_item"
+#token THAT				"that"
+#token ERASE_PROP		"Erase_task_item_property"
+#token ERASE_OBJECT		"Erase_task_item"
+
+#token GET_DEVICE		"Get_from_device"
+#token PUT_DEVICE		"Put_to_device"
+#token CREATE_TASK_LIST	"Create_task_list"
+#token ERASE_TASK_LIST	"Erase_task_list"
+#token GET_SIZE_OF		"Get_size_of_task_list"
+#token PREPEND_ITEM		"Prepend_item"
+#token APPEND_ITEM		"Append_item"
+#token INSERT_ITEM		"Insert_item"
+#token FIND_ITEM_WHOSE	"Find_item_whose"
+#token FIND_FIRST_ITEM	"Find_first_item_in_task_list"
+#token FIND_LAST_ITEM	"Find_last_item_in_task_list"
+#token FIND_ITEM_AFTER	"Find_item_after"
+#token FIND_ITEM_BEFORE	"Find_item_before"
+#token REMOVE_ITEM		"Remove_item"
+#token REMOVE_FIRST		"Remove_first_item_from_task_list"
+#token REMOVE_LAST		"Remove_last_item_from_task_list"
+#token BEFORE			"before"
+#token AFTER			"after"
+#token FROM_TASK_LIST	"from_task_list"
+#token TO_TASK_LIST		"to_task_list"
+#token IN_TASK_LIST		"in_task_list"
+
+#token LOOK_FOR			"Look_for_object_whose"
+#token CHECK_VISUAL		"Check_for_visual_object_whose" 
+#token WAIT_VISUAL		"Wait_for_visual_object_whose" 
+#token CHECK_AUDITORY	"Check_for_auditory_object_whose" 
+#token WAIT_AUDITORY	"Wait_for_auditory_object_whose" 
+#token WAIT_ANY_AUDITORY	"Wait_for_any_auditory_object" 
+#token STORE			"Store"
+#token DELETE			"Delete"
+#token AND_STORE_UNDER	"and_store_under"
+#token UNDER			"under"
+#token MENTAL			"Verify | Think_of"
+#token LOG				"Log"
+
+// tokens for small units
+#token TAGNAME		"\< [a-zA-Z][a-zA-Z0-9 _ \- ]* \>"
+#token NUMBER 		"[0-9]+"
+#token IDENTIFIER	"[a-zA-Z] [a-zA-Z0-9 _ \- ]*"	//a letter followed by letters, underscore, hyphen mix
+
+
+// scanner for C-style comment
+#lexclass C_STYLE_COMMENT
+#token "\* /"				<<skip(); mode(START);>>	// end a comment
+#token NLN "\n"				<<skip(); newline(); >>		// count line numbers
+#token NLR "\r"				<<skip(); newline(); >>		// count line numbers
+#token "~[]"				<<skip();>>					// skip everything in a comment
+
+// scanner for C++-style comment
+#lexclass CPP_STYLE_COMMENT
+#token NLN "\n"				<<skip(); newline(); mode(START);>>		// count line numbers, end a comment
+#token NLR "\r"				<<skip(); newline(); mode(START);>>		// count line numbers, end a comment
+#token "~[]"				<<skip();>>					// skip everything else in a comment
+
+// scanner for quoted strings
+#lexclass QUOTED_STRING
+#token	" \" \" "			<<more(); replchar('\"');>>	// change "" to a single "
+#token NLN "\n"				<<skip(); newline(); >>		// count line numbers
+#token NLR "\r"				<<skip(); newline(); >>		// count line numbers
+#token STRING	" \" "		<<replchar('\0'); mode(START);>>	// end of a string
+#token	"~[]"				<<more();>>					// add every char to the string
+
+#lexclass START
+
+// this is a LA(2) grammar
+//antlr GOMSL.g -CC -k 2
+//dlg -CC parser.dlg -C2 -i
+
+
+// Guidelines for PCCTS parameters and returned value handling
+// If a construct defines a new object, it creates it and returns it.
+// If the new object is a container for sub-objects, the construct creates it 
+//   and passes it as a parameter to the sub-object constructs.
+// If a construct is to add something to an existing container, 
+//   then the container is created by the caller and handed in as a parameter.
+// All containers are containers of Smart_Pointers, and direct members of their object.
+// <<
+// // a prototype for custom error reporting function
+// virtual void syn(_ANTLRTokenPtr tok, ANTLRChar *egroup, SetWordType *eset,
+//	ANTLRTokenType etok, int k);
+// >>
+
+class GOMSL_parser {				/* Define a grammar class */
+
+// additional members
+<<
+private:
+int number_of_syntax_errors;
+std::string file_name;
+public:
+int get_number_of_syntax_errors () {return number_of_syntax_errors;}
+
+void set_file_name(const std::string& f)
+{
+   file_name = f;
+}
+
+// override ANTLRParser's standard error reporting function to increment an error counter
+virtual void syn(_ANTLRTokenPtr tok, ANTLRChar *egroup, SetWordType *eset, ANTLRTokenType etok, int k)
+{
+	number_of_syntax_errors++;
+	// call the standard error reporting function
+	ANTLRParser::syn(tok, egroup, eset, etok, k);
+}
+>>
+
+// basic units  
+
+// goal: IDENTIFIER IDENTIFIER
+goal > [GOMS_Goal g]
+			:	
+		 	IDENTIFIER IDENTIFIER
+				<<
+				$g = GOMS_Goal($1->getText(), $2->getText());
+				// $g.display();
+				// Normal_out << "goal found" << endl;
+				>>
+			; 
+				<<Normal_out << "*** goal not found" << endl;>>
+				
+// simple_arg : TAGNAME | STRING | IDENTIFIER
+simple_arg	> [GOMS_Argument_Sptr_t a_p] 
+			:	
+			TAGNAME
+				<<
+				$a_p = new GOMS_WM_Argument($1->getText());
+				>>
+			| STRING
+				<<
+				$a_p = new GOMS_Constant_Argument($1->getText());
+				>>
+			| IDENTIFIER
+				<<
+				$a_p = new GOMS_Constant_Argument($1->getText());
+				>>
+				<<
+				// Normal_out << "simple_arg built" << endl;
+				// $a_p->display();
+				>>
+			;
+				<<Normal_out << "*** simple_arg not found" << endl;>>
+
+simple_arg_p
+			:
+			TAGNAME | STRING | IDENTIFIER
+			;
+
+
+//step_specifier : TAGNAME | STRING | IDENTIFIER | NUMBER 
+// used where a step name might be in a variable
+step_specifier	> [GOMS_Argument_Sptr_t a_p] 
+			:	
+			(TAGNAME
+				<<
+				$a_p = new GOMS_WM_Argument($1->getText());
+				>>
+			| STRING
+				<<
+				$a_p = new GOMS_Constant_Argument($1->getText());
+				>>
+			| IDENTIFIER
+				<<
+				$a_p = new GOMS_Constant_Argument($1->getText());
+				>>
+			| NUMBER
+				<<
+				$a_p = new GOMS_Constant_Argument($1->getText());
+				>>
+			)
+				<<
+				// Normal_out << "step_specifier built" << endl;
+				// $a_p->display();
+				>>
+			;
+				<<Normal_out << "*** step_specifier argument not found" << endl;>>
+
+// x_of_y_arg: simple_arg OF simple_arg
+x_of_y_arg	> [GOMS_Argument_Sptr_t a_p] 
+			: <<GOMS_Argument_Sptr_t x_p; GOMS_Argument_Sptr_t y_p;>>
+			simple_arg >[x_p] OF simple_arg >[y_p]
+				<<
+				$a_p = new GOMS_PO_Argument(x_p, y_p); 
+				// Normal_out << "x_of_y_arg built" << endl;
+				>>
+			;
+				<<Normal_out << "*** x_of_y_arg not found" << endl;>>
+
+x_of_y_arg_p
+			:
+			simple_arg_p OF simple_arg_p
+			;
+
+// any_inp_arg : x_of_y_arg | simple_arg
+any_inp_arg	> [GOMS_Argument_Sptr_t a_p] 
+			:
+			(x_of_y_arg_p)? x_of_y_arg >[$a_p]
+			| simple_arg  >[$a_p]
+				<<
+				// Normal_out << "any_inp_arg built" << endl;
+				>>
+			;
+				<<Normal_out << "*** any_inp_arg not found" << endl;>>
+any_inp_arg_p
+			:
+			(x_of_y_arg_p)? x_of_y_arg_p
+			| simple_arg_p
+			;
+
+
+// will any_inp_arg work here?
+// prop_value_arg : simple_arg IS simple_arg
+prop_value_arg 	> [GOMS_Argument_Sptr_t a_p] 
+			: <<GOMS_Argument_Sptr_t x_p; GOMS_Argument_Sptr_t y_p;>>
+//			simple_arg >[x_p] IS simple_arg >[y_p]
+			any_inp_arg >[x_p] IS any_inp_arg >[y_p]
+				<<
+				$a_p = new GOMS_PV_Argument(x_p, y_p); 
+				// Normal_out << "prop_value built" << endl;
+				>>
+			;
+				<<Normal_out << "*** prop_value_arg not found" << endl;>>
+
+// prop_value_arg_list : prop_value_arg ((COMMA | (COMMA AND) ) prop_value_arg )* 
+prop_value_arg_list > [GOMS_Argument_Sptr_List_t arg_list] 
+			: << GOMS_Argument_Sptr_t a_p;>>
+			prop_value_arg >[a_p]
+				<<
+				$arg_list.push_back(a_p);
+				// Normal_out << "prop_value_arg_list item built" << endl;
+				>>
+			((COMMA | (COMMA AND) ) 
+			prop_value_arg >[a_p] 
+				<<
+				$arg_list.push_back(a_p);
+				// Normal_out << "prop_value_arg_list item built" << endl;
+				>>
+			)* 
+				<<
+				// Normal_out << "prop_value_arg_list found" << endl;
+				>>
+			;
+				<<Normal_out << "*** prop_value_arg_list not found" << endl;>>
+
+
+// psdo_param_list : TAGNAME ( (COMMA | (COMMA AND) ) TAGNAME)*
+psdo_param_list	> [GOMS_Argument_Sptr_List_t arg_list] 
+			: << GOMS_Argument_Sptr_t a_p;>>
+			TAGNAME
+				<<
+				a_p = new GOMS_WM_Argument($1->getText());
+				$arg_list.push_back(a_p);
+				// Normal_out << "psdo_param_list item built" << endl;
+				>>
+			( (COMMA | (COMMA AND) ) 
+			TAGNAME 
+				<<
+				a_p = new GOMS_WM_Argument($2->getText());
+				$arg_list.push_back(a_p);
+				// Normal_out << "psdo_param_list item built" << endl;
+				>>
+			)* 
+				<<
+				// Normal_out << "psdo_param_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** psdo_param_list not found" << endl;>>
+			
+// psdo_arg_list : any_inp_arg ( (COMMA | (COMMA AND) ) any_inp_arg)*			
+psdo_arg_list > [GOMS_Argument_Sptr_List_t arg_list] 	
+			: <<GOMS_Argument_Sptr_t a_p;>>
+			any_inp_arg  >[a_p]
+				<<
+				$arg_list.push_back(a_p);
+				// Normal_out << "psdo_arg_list item built" << endl;
+				>>
+			( (COMMA | (COMMA AND) )
+			any_inp_arg  >[a_p]
+				<<
+				$arg_list.push_back(a_p);
+				// Normal_out << "psdo_arg_list item built" << endl;
+				>>
+			)*
+				<<
+				// Normal_out << "psdo_arg_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** psdo_arg_list not found" << endl;>>
+			
+			
+// Large Units
+
+// ltm_def : DEFLTM COLON IDENTIFIER (ltm_prop_value)+
+ltm_def [GOMS_Model_Sptr_t model_sptr] 
+			: <<Symbol o_s;>>
+
+			(
+			DEFLTM COLON IDENTIFIER
+			 	<<o_s = $3->getText();>>
+			)
+			(ltm_prop_value[model_sptr, o_s])+
+				<<
+				// Normal_out << "ltm_def found" << endl;
+				>>
+			;
+				<<Normal_out << "*** ltm_def not found" << endl;>>
+
+// ltm_prop_value :	IDENTIFIER IS ( IDENTIFIER | STRING ) PERIOD
+ltm_prop_value [GOMS_Model_Sptr_t model_sptr, Symbol o_s]
+			: <<Symbol v_s;>>
+			IDENTIFIER IS 
+			((IDENTIFIER
+				<< v_s = $1->getText();>>
+			 )
+			 |
+			 (STRING
+				<< v_s = $1->getText();>>
+			 )
+			)
+			PERIOD
+				<<
+				(model_sptr->theLTM).store(o_s, $1->getText(), v_s);
+				// Normal_out << "ltm_prop_value found" << endl;
+				>>
+			;
+				<<Normal_out << "*** ltm_prop_value not found" << endl;>>
+
+// task_def : DEFTASK COLON IDENTIFIER (task_prop_value)+
+task_def [GOMS_Model_Sptr_t model_sptr] 
+			: <<Symbol o_s;>>
+
+			(
+			DEFTASK COLON IDENTIFIER
+			 	<<o_s = $3->getText();>>
+			)
+			(task_prop_value[model_sptr, o_s])+
+				<<
+				// Normal_out << "task_def found" << endl;
+				>>
+			;
+				<<Normal_out << "*** task_def not found" << endl;>>
+
+// task_prop_value :	IDENTIFIER IS ( IDENTIFIER | STRING ) PERIOD
+task_prop_value [GOMS_Model_Sptr_t model_sptr, Symbol o_s]
+			: <<Symbol v_s;>>
+			IDENTIFIER IS 
+			((IDENTIFIER
+				<< v_s = $1->getText();>>
+			 )
+			 |
+			 (STRING
+				<< v_s = $1->getText();>>
+			 )
+			)
+			PERIOD
+				<<
+				(model_sptr->task_description).store(o_s, $1->getText(), v_s);
+				// Normal_out << "task_prop_value found" << endl;
+				>>
+			;
+				<<Normal_out << "*** task_prop_value not found" << endl;>>
+
+// visual_def : DEFVISUAL COLON IDENTIFIER (visual_prop_value)+
+visual_def [GOMS_Model_Sptr_t model_sptr] 
+			: <<Symbol o_s;>>
+
+			(
+			DEFVISUAL COLON IDENTIFIER
+			 	<<o_s = $3->getText();>>
+			)
+			(visual_prop_value[model_sptr, o_s])+
+				<<
+				// Normal_out << "visual_def found" << endl;
+				>>
+			;
+				<<Normal_out << "*** visual_def not found" << endl;>>
+
+// visual_prop_value :	IDENTIFIER IS ( IDENTIFIER | STRING ) PERIOD
+visual_prop_value [GOMS_Model_Sptr_t model_sptr, Symbol o_s]
+			: <<Symbol v_s;>>
+			IDENTIFIER IS 
+			((IDENTIFIER
+				<< v_s = $1->getText();>>
+			 )
+			 |
+			 (STRING
+				<< v_s = $1->getText();>>
+			 )
+			)
+			PERIOD
+				<<
+				(model_sptr->initial_visual_state).store(o_s, $1->getText(), v_s);
+				// Normal_out << "visual_prop_value found" << endl;
+				>>
+			;
+				<<Normal_out << "*** visual_prop_value not found" << endl;>>
+
+// auditory_def : DEFAUDITORY COLON IDENTIFIER (auditory_prop_value)+
+auditory_def [GOMS_Model_Sptr_t model_sptr] 
+			: <<Symbol o_s;>>
+			DEFAUDITORY COLON 
+			((IDENTIFIER
+			 	<<o_s = $1->getText();>>
+			  )
+			  |
+			 (STRING
+				<< o_s = $1->getText();>>
+			 )
+			)		  
+			(auditory_prop_value[model_sptr, o_s])+
+				<<
+				// Normal_out << "auditory_def found" << endl;
+				>>
+			;
+				<<Normal_out << "*** auditory_def not found" << endl;>>
+
+// auditory_prop_value :	IDENTIFIER IS ( IDENTIFIER | STRING ) PERIOD
+auditory_prop_value [GOMS_Model_Sptr_t model_sptr, Symbol o_s]
+			: <<Symbol a_s;>>
+			IDENTIFIER IS 
+			((IDENTIFIER
+				<< a_s = $1->getText();>>
+			 )
+			 |
+			 (STRING
+				<< a_s = $1->getText();>>
+			 )
+			)
+			PERIOD
+				<<
+				(model_sptr->initial_auditory_state).store(o_s, $1->getText(), a_s);
+				// Normal_out << "auditory_prop_value found" << endl;
+				>>
+			;
+				<<Normal_out << "*** auditory_prop_value not found" << endl;>>
+
+// initial_wm_def : DEFWM COLON (wm_prop_value)+
+initial_wm_def [GOMS_Model_Sptr_t model_sptr] 
+			: 
+			DEFWM COLON 
+			(wm_prop_value[model_sptr])+
+				<<
+				// Normal_out << "initial_wm_def found" << endl;
+				>>
+			;
+				<<Normal_out << "*** initial_wm_def not found" << endl;>>
+
+// wm_prop_value :	TAGNAME IS ( IDENTIFIER | STRING ) PERIOD
+wm_prop_value [GOMS_Model_Sptr_t model_sptr]
+			: <<Symbol v_s;>>
+			TAGNAME IS 
+			((IDENTIFIER
+				<< v_s = $1->getText();>>
+			 )
+			 |
+			 (STRING
+				<< v_s = $1->getText();>>
+			 )
+			)
+			PERIOD
+				<<
+				(model_sptr->initial_WM_contents).store($1->getText(), v_s);
+				// Normal_out << "wm_prop_value found" << endl;
+				>>
+			;
+				<<Normal_out << "*** wm_prop_value not found" << endl;>>
+
+
+// This is the top level of the parser - call this member function and get its returned value
+// a smart pointer to the model if successful, NULL if not.
+
+// model : DEFMODEL COLON (STRING | IDENTIFIER) STARTING_GOAL IS goal PERIOD 
+//	( method | srs | ltm_def | task_def | visual_def | auditory_def | initial_wm_def )+ "@"
+model > [GOMS_Model_Sptr_t m] 
+			: <<GOMS_Model_Sptr_t model_sptr = new GOMS_Model; GOMS_Goal g;
+				Symbol m_n;
+				number_of_syntax_errors = 0;	// reset the error counter
+				>>
+			DEFMODEL COLON 
+			(
+			STRING
+				<< m_n = $1->getText(); >>
+			|
+			IDENTIFIER
+				<< m_n = $1->getText(); >>
+			)
+			(STARTING_GOAL IS goal >[g] PERIOD)
+			( method[model_sptr] 
+			| srs[model_sptr]  
+			| irs[model_sptr]  
+			| ltm_def[model_sptr] 
+			| task_def[model_sptr] 
+			| visual_def[model_sptr] 
+			| auditory_def[model_sptr] 
+			| initial_wm_def[model_sptr] 
+			)+ "@"		
+				<<
+				if (number_of_syntax_errors) {
+					cerr << "Found " << number_of_syntax_errors << " syntax errors; model not built." << endl;
+					$m = 0;
+					}
+				else {
+					model_sptr->model_name = m_n;
+					model_sptr->start_goal = g;
+//					// model_sptr->display();
+					$m = model_sptr;
+					// Normal_out << "model built" << endl;
+					}
+				>>
+			;
+				<<Normal_out << "*** Define_model not found" << endl;>>
+			
+// method : MFG COLON goal {USING psdo_param_list} {ONERROR COLON goal} (step)+ 						
+method	[GOMS_Model_Sptr_t model_sptr] 
+			:	<<GOMS_Procedure_Sptr_t proc_sptr = new GOMS_Method; 
+				GOMS_Goal g; GOMS_Goal error_g;
+				GOMS_Argument_Sptr_List_t a_l_p;>>
+			MFG COLON 
+			goal >[g] 
+			{USING psdo_param_list >[a_l_p]}
+			{ONERROR COLON goal >[error_g]}
+			(step[proc_sptr])+ 
+				<<
+				// why not a constructor here?
+				proc_sptr->goal = g;
+				proc_sptr->error_goal = error_g;
+				proc_sptr->param_list = a_l_p;
+				// Normal_out << "param_list size is %d\n", (proc_sptr->param_list).size());
+				// proc_sptr->display();
+				model_sptr->procedure_set.insert(proc_sptr);	// no check on success of insertion
+				model_sptr->procedure_list.push_back(proc_sptr);
+				// Normal_out << "method built" << endl;
+				{
+				//	Normal_out << "(mp1 If ((Goal " << g.action << ' ' << g.object << ")(Not (Step mp ??? ???))) Then ((Add (Step mp 1)))" << endl;
+				}
+				>>
+			;
+				<<Normal_out << "*** Method_for_goal not found" << endl;>>
+
+// Selection Rules are a constrained subset of other language facilities
+// srs : SRFG COLON goal {USING psdo_param_list} (sel_rule)+ rga_op PERIOD
+srs	[GOMS_Model_Sptr_t model_sptr] 
+			:
+			<<
+			GOMS_Goal g;
+			GOMS_Conditional_Sptr_list_t c_l;
+			GOMS_Conditional_Sptr_t c_p;
+			GOMS_Operator_Sptr_t dec_op;
+			GOMS_Operator_Sptr_t r_op;
+			GOMS_Argument_Sptr_List_t a_l_p;
+         	int start_line = -1;
+			>>
+			
+			SRFG << start_line = $1->getLine(); >> 
+         	COLON 
+			goal >[g]
+			{USING psdo_param_list >[a_l_p]}
+			(
+			sel_rule >[c_p]
+				<<
+				c_l.push_back(c_p);
+				>>
+			)+ 
+			rga_op >[r_op]
+			PERIOD
+				<<
+				// construct a selection operator
+				dec_op = new GOMS_Selection_Operator (c_l);
+				// construct a step with special label
+				GOMS_Step_Sptr_t step_sptr = new GOMS_Step("SR Selection");
+           	step_sptr->set_file_location(file_name, start_line);
+				// put the selection operator in the operator list for the step
+				step_sptr->operator_sptr_list.push_back(dec_op);
+				// construct a selection rule set procedure with the goal
+				GOMS_Procedure_Sptr_t proc_sptr = new GOMS_Selection_Rule_Set(g);
+				// put the selection step into the procedure step list
+				proc_sptr->step_sptr_list.push_back(step_sptr);
+				// construct another step, put the rga operator in it, etc.
+				step_sptr = new GOMS_Step("SR Return");
+           	step_sptr->set_file_location(file_name, $1->getLine());
+				step_sptr->operator_sptr_list.push_back(r_op);
+				proc_sptr->step_sptr_list.push_back(step_sptr);
+				proc_sptr->param_list = a_l_p;
+				// put the procedure in the model
+				model_sptr->procedure_set.insert(proc_sptr);	// no check on success of insertion
+				model_sptr->procedure_list.push_back(proc_sptr);
+				// Normal_out << "srs built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Selection_rules_for_goal not found" << endl;>>
+
+// sr : IF pred_list {COMMA} THEN ag_op PERIOD
+sel_rule >[GOMS_Conditional_Sptr_t c_p] :	
+			<<
+			GOMS_Predicate_Sptr_list_t pr_l; 
+			GOMS_Operator_Sptr_list_t op_l;
+			GOMS_Operator_Sptr_t op;
+			>>
+			IF 
+			pred_list [pr_l]
+			{COMMA} THEN 
+			ag_op >[op]
+			PERIOD
+				<<
+				op_l.push_back(op);
+				$c_p = new GOMS_Conditional(pr_l, op_l);
+				// Normal_out << "sr built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Selection rule not found" << endl;>>
+			
+// Interrupt Rules are a constrained subset of other language facilities
+// irs : IRS (interrupt_rule)+ 
+irs	[GOMS_Model_Sptr_t model_sptr] 
+			:
+			<<
+			GOMS_Conditional_Sptr_list_t c_l;
+			GOMS_Conditional_Sptr_t c_p;
+			GOMS_Operator_Sptr_t interrupt_op;
+			>>
+			
+			IRS  
+			(
+			interrupt_rule >[c_p]
+				<<
+				c_l.push_back(c_p);
+				>>
+			)+ 
+				<<
+				// construct a interrupt rule set operator
+				//interrupt_op = new GOMS_Interrupt_Rule_Set_Operator (c_l);
+				// put the interrupt rule set in the model
+				//model_sptr->interrupt_rule_set = interrupt_op;
+				// construct a interrupt rule set operator
+				interrupt_op = new GOMS_Interrupt_Rule_Set_Operator (c_l);
+				// construct a step with special label
+				Symbol check_step_label("Check");
+				GOMS_Step_Sptr_t step_sptr = new GOMS_Step(check_step_label);
+				// put the interrupt operator in the operator list for the step
+				step_sptr->operator_sptr_list.push_back(interrupt_op);
+				// construct an interrupt rule set procedure - it has its own goal
+				GOMS_Procedure_Sptr_t proc_sptr = new GOMS_Interrupt_Rule_Set;
+				// put the interrupt step into the procedure step list
+				proc_sptr->step_sptr_list.push_back(step_sptr);
+				// // construct another step, put Goto operator in it.
+				// step_sptr = new GOMS_Step("Loop");
+				// GOMS_Operator_Sptr_t goto_op = new GOMS_Goto_Operator(check_step_label);
+				// step_sptr->operator_sptr_list.push_back(goto_op);
+				// proc_sptr->step_sptr_list.push_back(step_sptr);
+				// put the procedure in the model
+				model_sptr->procedure_set.insert(proc_sptr);	// no check on success of insertion
+				model_sptr->procedure_list.push_back(proc_sptr);
+				// Normal_out << "irs built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Interrupt_rules not found" << endl;>>
+
+// interrupt_rule : IF (exists_pred | pred_list) {COMMA} THEN (abort_restart_op | ag_op) PERIOD
+interrupt_rule >[GOMS_Conditional_Sptr_t c_p] :	
+			<<
+			GOMS_Predicate_Sptr_list_t pr_l; 
+			GOMS_Operator_Sptr_list_t op_l;
+			GOMS_Operator_Sptr_t op;
+			>>
+			IF 
+			(
+			exists_pred [pr_l]
+			|
+			pred_list [pr_l]
+			)
+			{COMMA} THEN 
+			(
+			abort_restart_op >[op]
+			|
+			ag_op >[op]
+			)
+			PERIOD
+				<<
+				op_l.push_back(op);
+				$c_p = new GOMS_Conditional(pr_l, op_l);
+				//Normal_out << "interrupt_rule built" << endl;
+				>>
+			;
+				<<Normal_out << "*** interrupt_rule not found" << endl;>>
+			
+
+			
+// *** Step constituents ***
+// step : STEP NUMBER PERIOD op_list PERIOD	
+step [GOMS_Procedure_Sptr_t proc_sptr]
+			: <<GOMS_Step_Sptr_t step_sptr = new GOMS_Step;
+				GOMS_Operator_Sptr_list_t& op_l = step_sptr->operator_sptr_list;
+				>>
+			STEP 
+				<<
+				step_sptr->set_file_location(file_name, $1->getLine());
+				>>
+			{
+			 NUMBER
+			 	<<
+				step_sptr->label = Symbol($1->getText());
+				>>
+			 	
+			|IDENTIFIER 
+			 	<<
+				step_sptr->label = Symbol($1->getText());
+				>>
+			}
+			PERIOD
+			op_list [op_l]			
+			PERIOD	
+				<<
+//				step_sptr->label = Symbol($2->getText());
+				proc_sptr->step_sptr_list.push_back(step_sptr);
+				// Normal_out << "step built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Step not found" << endl;>>
+			
+						
+// An operator list must contain either a singleton operator,
+//  which is only allowed as the only operator in a step
+// or a series of operators containing:
+//   at least one operator, either intra- or inter-step
+//   but only one inter-step operator
+//   additional intra-step operators can follow the inter-step one
+//   flow of control operators must come last
+// op_list	:
+//			singleton_op
+//			|
+//			(intra_op (SEMICOLON intra_op)* {SEMICOLON inter_op (SEMICOLON intra_op)*})
+//			|
+//			(inter_op (SEMICOLON intra_op)*)
+
+op_list [GOMS_Operator_Sptr_list_t& o_l]
+			:
+			singleton_op[o_l]
+			|
+			flow_op[o_l]
+			|
+			(inter_op[o_l] (SEMICOLON intra_op[o_l])* {SEMICOLON flow_op[o_l]})
+			|
+			(intra_op[o_l] ((SEMICOLON intra_op[o_l])* {SEMICOLON inter_op[o_l] 
+				(SEMICOLON intra_op[o_l])*}{SEMICOLON flow_op[o_l]}))
+				<<
+				// Normal_out << "op_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** operator list not found" << endl;>>
+
+			
+// singleton_op : decide_op
+singleton_op  [GOMS_Operator_Sptr_list_t& o_l] 
+			: <<GOMS_Operator_Sptr_t o_p;>> 
+			decide_op>[o_p] 
+				<<
+				o_l.push_back(o_p);
+				// Normal_out << "singleton_op built" << endl;
+				// o_p->display();
+				>>
+			;
+				<<Normal_out << "*** Decide arguments not found" << endl;>>
+
+// These operators involve intra-step actions			
+//intra_op : ( store_op | delete_op )
+intra_op  [GOMS_Operator_Sptr_list_t& o_l] 
+			: <<GOMS_Operator_Sptr_t o_p;>> 
+			( 
+			  store_op>[o_p] 
+			| delete_op>[o_p]
+			| log_op>[o_p]
+			)
+				<<
+				o_l.push_back(o_p);
+				// Normal_out << "intra_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Intrastep operator arguments not found" << endl;>>
+
+// These operators involve flow-of-control actions			
+//flow_op : ( ag_op | also_ag_op | rga_op | goto_op | abort_restart_op | resume_op | raise_op)
+flow_op  [GOMS_Operator_Sptr_list_t& o_l] : <<GOMS_Operator_Sptr_t o_p;>> 
+			( 
+			  ag_op>[o_p] 
+			| also_ag_op>[o_p] 
+			| rga_op>[o_p] 
+			| goto_op>[o_p] 
+			| abort_restart_op>[o_p] 
+			| resume_op>[o_p] 
+			| raise_op>[o_p] 
+			| stop_op>[o_p] 
+
+			)
+				<<
+				o_l.push_back(o_p);
+				// Normal_out << "flow_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Flow-of-control arguments not found" << endl;>>
+
+// These operators involve inter-step scheduling
+//inter_op	:
+//			key_op	| type_op | home_op | point_op | 
+//			hold_op | release_op | click_op | dbl_click_op 
+//			| rltm_op | recall_op | look_for_op 
+//			| get_task_op | write_task_op | update_task_op |mental_op
+inter_op  [GOMS_Operator_Sptr_list_t& o_l] 
+			: <<GOMS_Operator_Sptr_t o_p;>> 
+			(
+			  key_op>[o_p] 
+			| type_op>[o_p] 
+			| home_op>[o_p] 
+			| point_op>[o_p] 
+			| hold_op>[o_p] 
+			| release_op>[o_p] 
+			| click_op>[o_p] 
+			| dbl_click_op>[o_p] 
+			| speak_op>[o_p] 
+			| rltm_op>[o_p] 
+			| look_at_op>[o_p] 
+			| recall_op>[o_p] 
+			| look_for_op>[o_p] 
+			| check_visual_op>[o_p] 
+			| wait_visual_op>[o_p] 
+			| check_auditory_op>[o_p] 
+			| wait_auditory_op>[o_p] 
+			| wait_any_auditory_op>[o_p] 
+			| get_task_op>[o_p] 
+			| write_task_op>[o_p] 
+			| update_task_op>[o_p] 
+			| erase_task_prop_op>[o_p] 
+			| erase_task_object_op>[o_p] 
+			| create_task_list_op>[o_p] 
+			| erase_task_list_op>[o_p] 
+			| get_size_of_task_list_op>[o_p] 
+			| find_task_item_whose_op>[o_p] 
+			| find_first_item_op>[o_p] 
+			| find_last_item_op>[o_p] 
+			| find_item_before_op>[o_p] 
+			| find_item_after_op>[o_p] 
+			| append_item_op>[o_p] 
+			| preprend_item_op>[o_p] 
+//			| insert_item_after_op>[o_p] 
+			| insert_item_before_op>[o_p] 
+//			| write_item_op>[o_p] 
+			| remove_item_op>[o_p] 
+			| remove_first_op>[o_p] 
+			| remove_last_op>[o_p] 
+			| get_device_op>[o_p] 
+			| put_device_op>[o_p] 
+			| mental_op>[o_p]
+			)
+				<<
+				o_l.push_back(o_p);
+				// Normal_out << "inter_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** interstep operator arguments not found" << endl;>>
+
+
+// *** Flow of control operators ***
+//ag_op	: AG COLON goal {USING psdo_arg_list}
+ag_op > [GOMS_Operator_Sptr_t op] 
+			: <<GOMS_Goal g; GOMS_Argument_Sptr_List_t arg_list;>>
+			AG COLON goal>[g]
+			{USING psdo_arg_list>[arg_list] }
+				<<
+				$op = new GOMS_Accomplish_Goal_Operator(g, arg_list);
+				// $op->display();
+				// Normal_out << "ag_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Accomplish_goal arguments not found" << endl;>>
+
+//also_ag_op	: AAG COLON goal AS IDENTIFIER {USING psdo_arg_list}
+also_ag_op > [GOMS_Operator_Sptr_t op] 
+			: <<GOMS_Goal g; Symbol thread_name; GOMS_Argument_Sptr_List_t arg_list;>>
+			AAG COLON goal>[g]
+			AS IDENTIFIER
+			{USING psdo_arg_list>[arg_list] }
+				<<
+				thread_name = Symbol($5->getText());
+				$op = new GOMS_Also_Accomplish_Goal_Operator(g, thread_name, arg_list);
+				// $op->display();
+				// Normal_out << "also_ag_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Also_accomplish_goal arguments not found" << endl;>>
+
+// rga_op :	RGA
+rga_op > [GOMS_Operator_Sptr_t op] :	
+			RGA
+				<<
+				$op = new GOMS_Return_Goal_Accomplished_Operator;
+				// Normal_out << "rga_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Return_with_goal_accomplished not found" << endl;>>
+	
+abort_restart_op > [GOMS_Operator_Sptr_t op] :	
+			AAR
+				<<
+				$op = new GOMS_Abort_and_Restart_Operator;
+				 //Normal_out << "abort_restart_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Abort_and_restart not found" << endl;>>
+	
+// resume_op : RESUME simple_arg ACCOMPLISHING_GOAL simple_arg simple_arg AT simple_arg
+// Resume <thread> accomplishing_goal <goal_action> <goal_object> at <stepname>
+resume_op > [GOMS_Operator_Sptr_t op]
+			: <<GOMS_Argument_Sptr_t thread_arg_p; 
+				GOMS_Argument_Sptr_t goal_action_arg_p; GOMS_Argument_Sptr_t goal_object_arg_p;
+				GOMS_Argument_Sptr_t step_arg_p;>>
+			(RESUME
+			simple_arg >[thread_arg_p]
+			ACCOMPLISHING_GOAL
+			simple_arg >[goal_action_arg_p]
+			simple_arg >[goal_object_arg_p]
+			AT
+			step_specifier >[step_arg_p]
+			)
+			<<
+			$op = new GOMS_Resume_Operator(thread_arg_p, goal_action_arg_p, goal_object_arg_p, step_arg_p);
+			// Normal_out << "Resume ... accomplishing_goal ... at ... built" << endl;	
+			>>
+			;
+				<<Normal_out << "*** Resume ... accomplishing_goal ... at ... built arguments not found" << endl;>>
+
+//raise_op: RAISE simple_arg
+// Raise <exception_name>
+raise_op > [GOMS_Operator_Sptr_t op]	
+			: <<GOMS_Argument_Sptr_t exception_arg_p;>>
+			(RAISE
+			simple_arg >[exception_arg_p]
+			)
+			<<
+			$op = new GOMS_Raise_Operator(exception_arg_p);
+			// Normal_out << "Raise ... built" << endl;	
+			>>
+			;
+				<<Normal_out << "*** Raise ... arguments not found" << endl;>>
+
+//stop_op: STOP simple_arg
+// Stop_with_message <message>
+stop_op > [GOMS_Operator_Sptr_t op]	
+			: <<GOMS_Argument_Sptr_t message_arg_p;>>
+			(STOP
+			simple_arg >[message_arg_p]
+			)
+			<<
+			$op = new GOMS_Stop_Operator(message_arg_p);
+			// Normal_out << "Stop ... built" << endl;	
+			>>
+			;
+				<<Normal_out << "*** Stop ... arguments not found" << endl;>>
+
+
+// goto_op : GOTO (NUMBER | IDENTIFIER)
+goto_op > [GOMS_Operator_Sptr_t op] :	
+			GOTO 
+			( NUMBER
+				<<
+				$op = new GOMS_Goto_Operator($1->getText());
+				// Normal_out << "goto_op built" << endl;
+				>>
+			 |
+			   IDENTIFIER
+				<<
+				$op = new GOMS_Goto_Operator($1->getText());
+				// Normal_out << "goto_op built" << endl;
+				>>
+			)
+			;
+				<<Normal_out << "*** Go_to arguments not found" << endl;>>
+
+// decide_op : DECIDE COLON decide_if (SEMICOLON decide_if)* {SEMICOLON decide_else}
+decide_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Conditional_Sptr_list_t d_i_l;>>
+			DECIDE COLON 
+			( decide_if[d_i_l] 
+			(SEMICOLON decide_if[d_i_l] )*
+			{SEMICOLON decide_else[d_i_l]} 
+			)
+				<<
+				$op = new GOMS_Decide_Operator (d_i_l);
+				// Normal_out << "decide_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Decide arguments not found" << endl;>>
+			
+// decide_if : IF pred_list {COMMA} THEN op_list
+decide_if [GOMS_Conditional_Sptr_list_t& d_i_l] :
+			<<
+			GOMS_Conditional_Sptr_t c_p;
+			GOMS_Predicate_Sptr_list_t pr_l; 
+			GOMS_Operator_Sptr_list_t op_l;
+			>>
+			IF 
+			pred_list [pr_l]
+			{COMMA} THEN 
+			op_list [op_l]
+				<<
+				c_p = new GOMS_Conditional(pr_l, op_l);
+				d_i_l.push_back(c_p);
+				// Normal_out << "decide_if built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Decide If/Then not found" << endl;>>
+
+// exists_pred : Exists TAGNAME  pred_list
+exists_pred [GOMS_Predicate_Sptr_list_t& p_l] :
+			<<GOMS_Argument_Sptr_t a1_p; GOMS_Predicate_Sptr_t p_p; 
+				GOMS_Predicate_Sptr_list_t p_l2;>>
+			EXISTS TAGNAME 
+				<<
+				a1_p = new GOMS_WM_Argument($2->getText());
+				 // Normal_out << "TAGNAME found" << endl;
+				>>
+			pred_list [p_l2]
+				<<
+				p_p = new GOMS_Exists_Predicate(a1_p, p_l2);
+				p_l.push_back(p_p);				
+				 // Normal_out << "exists_pred built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Exists predicate not found" << endl;>>
+			
+// pred_list : predicate ((COMMA | (COMMA AND) ) predicate )* 
+pred_list [GOMS_Predicate_Sptr_list_t& p_l] :
+			<<GOMS_Predicate_Sptr_t p_p;>>
+			predicate [p_l] 
+			((COMMA | (COMMA AND) ) 
+			predicate [p_l]
+			)* 
+				<<
+				// Normal_out << "pred_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** predicate list not found" << endl;>>
+
+//decide_else : ELSE op_list
+decide_else	[GOMS_Conditional_Sptr_list_t& d_i_l] :
+			<<
+			GOMS_Conditional_Sptr_t c_p;
+			GOMS_Operator_Sptr_list_t op_l;
+			>>
+			ELSE 
+			op_list [op_l]
+				<<
+				c_p = new GOMS_Conditional(op_l);
+				d_i_l.push_back(c_p);
+				 // Normal_out << "decide_else built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Decide Else not found" << endl;>>
+
+
+/* predicate : any_inp_arg (
+			is_predicate
+			| 
+			is_not_predicate
+			|
+			is_greater_than_predicate
+			|
+			is_less_than_predicate
+			|
+			is_greater_than_or_equal_to_predicate
+			|
+			is_less_than_or_equal_to_predicate
+			)
+*/
+predicate [GOMS_Predicate_Sptr_list_t& p_l] :
+			<<GOMS_Predicate_Sptr_t p_p; GOMS_Argument_Sptr_t a1_p;>>
+			any_inp_arg >[a1_p]
+			(
+			is_predicate [a1_p] >[p_p] 
+			| 
+			is_not_predicate [a1_p] >[p_p]
+			|
+			is_greater_than_predicate [a1_p] >[p_p]
+			|
+			is_less_than_predicate [a1_p] >[p_p]
+			|
+			is_greater_than_or_equal_to_predicate [a1_p] >[p_p]
+			|
+			is_less_than_or_equal_to_predicate [a1_p] >[p_p]
+			)
+				<<
+				p_l.push_back(p_p);				
+				 // Normal_out << "predicate built" << endl;
+				>>
+			;
+				<<Normal_out << "*** predicate not found" << endl;>>
+			
+// is_predicate: IS any_inp_arg
+is_predicate [GOMS_Argument_Sptr_t a1_p] > [GOMS_Predicate_Sptr_t p_p] :
+			<<GOMS_Argument_Sptr_t a2_p;>>
+			(IS | IS_EQUAL_TO) any_inp_arg>[a2_p]
+				<<
+				$p_p = new GOMS_Is_Predicate(a1_p, a2_p);
+				// Normal_out << "is_predicate built" << endl;
+				>>
+			;
+				<<Normal_out << "*** is_predicate not found" << endl;>>
+
+// is_not_predicate: IS_NOT any_inp_arg
+is_not_predicate [GOMS_Argument_Sptr_t a1_p] > [GOMS_Predicate_Sptr_t p_p] :
+			<<GOMS_Argument_Sptr_t a2_p;>>
+			(IS_NOT | IS_NOT_EQUAL_TO) any_inp_arg>[a2_p]
+				<<
+				$p_p = new GOMS_Is_Not_Predicate(a1_p, a2_p);
+				// Normal_out << "is_not_predicate built" << endl;
+				>>
+			;
+				<<Normal_out << "*** is_not_predicate not found" << endl;>>
+
+
+// is_greater_than_predicate: IS_GREATER_THAN any_inp_arg
+is_greater_than_predicate [GOMS_Argument_Sptr_t a1_p] > [GOMS_Predicate_Sptr_t p_p] :
+			<<GOMS_Argument_Sptr_t a2_p;>>
+			IS_GREATER_THAN any_inp_arg>[a2_p]
+				<<
+				$p_p = new GOMS_Is_Greater_Than_Predicate(a1_p, a2_p);
+				// Normal_out << "is_greater_than_predicate built" << endl;
+				>>
+			;
+				<<Normal_out << "*** is_greater_than_predicate not found" << endl;>>
+
+// is_greater_than_or_equal_to_predicate: IS_GREATER_THAN_OR_EQUAL_TO any_inp_arg
+is_greater_than_or_equal_to_predicate [GOMS_Argument_Sptr_t a1_p] > [GOMS_Predicate_Sptr_t p_p] :
+			<<GOMS_Argument_Sptr_t a2_p;>>
+			IS_GREATER_THAN_OR_EQUAL_TO any_inp_arg>[a2_p]
+				<<
+				$p_p = new GOMS_Is_Greater_Than_Or_Equal_To_Predicate(a1_p, a2_p);
+				// Normal_out << "is_greater_than_or_equal_to_predicate built" << endl;
+				>>
+			;
+				<<Normal_out << "*** is_greater_than_or_equal_to_predicate not found" << endl;>>
+
+// is_less_than_predicate: IS_LESS_THAN any_inp_arg
+is_less_than_predicate [GOMS_Argument_Sptr_t a1_p] > [GOMS_Predicate_Sptr_t p_p] :
+			<<GOMS_Argument_Sptr_t a2_p;>>
+			IS_LESS_THAN any_inp_arg>[a2_p]
+				<<
+				$p_p = new GOMS_Is_Less_Than_Predicate(a1_p, a2_p);
+				// Normal_out << "is_less_than_predicate built" << endl;
+				>>
+			;
+				<<Normal_out << "*** is_less_than_predicate not found" << endl;>>
+
+// is_less_than_or_equal_to_predicate: IS_LESS_THAN_OR_EQUAL_TO any_inp_arg
+is_less_than_or_equal_to_predicate [GOMS_Argument_Sptr_t a1_p] > [GOMS_Predicate_Sptr_t p_p] :
+			<<GOMS_Argument_Sptr_t a2_p;>>
+			IS_LESS_THAN_OR_EQUAL_TO any_inp_arg>[a2_p]
+				<<
+				$p_p = new GOMS_Is_Less_Than_Or_Equal_To_Predicate(a1_p, a2_p);
+				// Normal_out << "is_less_than_or_equal_to_predicate built" << endl;
+				>>
+			;
+				<<Normal_out << "*** is_less_than_or_equal_to_predicate not found" << endl;>>
+
+
+//is_not_predicate_p
+//			:
+//			any_inp_arg_p IS_NOT any_inp_arg_p
+//			any_inp_arg_p IS_NOT
+//			;
+			
+// *** Memory Operators ***
+
+// Intra-step memory operators
+
+// store_op : STORE any_inp_arg UNDER TAGNAME
+store_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p, tag_p;>>
+			STORE any_inp_arg>[a_p] UNDER TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Store_Operator(a_p, tag_p);
+				// $op->display();
+				// Normal_out << "store_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Store arguments not found" << endl;>>
+
+// delete_op : DELETE TAGNAME
+delete_op  > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t tag_p;>>
+			DELETE TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($2->getText());
+				$op = new GOMS_Delete_Operator(tag_p);
+				// $op->display();
+				// Normal_out << "delete_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Delete arguments not found" << endl;>>
+
+// this is not a normal operator - it writes logging information, has no other effects
+//log_op	: LOG psdo_arg_list
+log_op > [GOMS_Operator_Sptr_t op] 
+			: <<GOMS_Argument_Sptr_List_t arg_list;>>
+			LOG psdo_arg_list>[arg_list]
+				<<
+				$op = new GOMS_Log_Operator(arg_list);
+				// $op->display();
+				// Normal_out << "log_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Log arguments not found" << endl;>>
+
+// Inter-step memory operators
+
+//rltm_op : RLTM simple_arg OF simple_arg AND_STORE_UNDER TAGNAME
+rltm_op > [GOMS_Operator_Sptr_t op] 
+			:
+			<<
+			GOMS_Argument_Sptr_t prp_p, obj_p, tag_p;
+			>>
+			RLTM 
+			simple_arg>[prp_p] OF simple_arg>[obj_p]
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($6->getText());
+				$op = new GOMS_Retrieve_LTM_Operator(prp_p, obj_p, tag_p);
+				// $op->display();
+				// Normal_out << "rltm_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Retrieve_from_LTM arguments not found" << endl;>>
+
+//look_at_op : LOOK_AT TAGNAME
+look_at_op > [GOMS_Operator_Sptr_t op] 
+			:
+			<<
+			GOMS_Argument_Sptr_t obj_p;
+			>>
+			LOOK_AT 
+			TAGNAME
+				<<
+				// the tag argument is a constant - gets both resolved and not
+				obj_p = new GOMS_WM_Argument($2->getText());
+				$op = new GOMS_Look_at_Operator(obj_p);
+				// $op->display();
+				// Normal_out << "look_at_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Look_at arguments not found" << endl;>>
+
+
+// recall_op : RECALL prop_value_arg_list AND_STORE_UNDER TAGNAME
+recall_op > [GOMS_Operator_Sptr_t op] 
+			:
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			RECALL 
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Recall_LTM_Operator(arg_list_p, tag_p);
+				// Normal_out << "recall_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Recall_LTM_item_whose arguments not found" << endl;>>
+
+// look_for_op : LOOK_FOR prop_value_arg_list AND_STORE_UNDER TAGNAME
+look_for_op > [GOMS_Operator_Sptr_t op] 
+			: 
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			LOOK_FOR 
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Look_Operator(arg_list_p, tag_p);
+				// Normal_out << "look_for_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Look_for_object_whose arguments not found" << endl;>>
+
+// check_visual_op : Check_for_visual_object_whose prop_value_arg_list AND_STORE_UNDER TAGNAME
+check_visual_op > [GOMS_Operator_Sptr_t op] 
+			: 
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			CHECK_VISUAL 
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Check_Visual_Operator(arg_list_p, tag_p);
+				// Normal_out << "check_visual_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Check_for_visual_object_whose arguments not found" << endl;>>
+
+// wait_visual_op : Wait_for_visual_object_whose prop_value_arg_list AND_STORE_UNDER TAGNAME
+wait_visual_op > [GOMS_Operator_Sptr_t op] 
+			: 
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			WAIT_VISUAL
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Wait_Visual_Operator(arg_list_p, tag_p);
+				// Normal_out << "wait_visual_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Wait_for_auditory_object_whose arguments not found" << endl;>>
+
+// check_auditory_op : Check_for_auditory_object_whose prop_value_arg_list AND_STORE_UNDER TAGNAME
+check_auditory_op > [GOMS_Operator_Sptr_t op] 
+			: 
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			CHECK_AUDITORY
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Check_Auditory_Operator(arg_list_p, tag_p);
+				// Normal_out << "check_auditory_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Check_for_auditory_object_whose arguments not found" << endl;>>
+
+// wait_auditory_op : Wait_for_auditory_object_whose prop_value_arg_list AND_STORE_UNDER TAGNAME
+wait_auditory_op > [GOMS_Operator_Sptr_t op] 
+			: 
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			WAIT_AUDITORY
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Wait_Auditory_Operator(arg_list_p, tag_p);
+				// Normal_out << "wait_auditory_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Wait_for_auditory_object_whose arguments not found" << endl;>>
+
+// wait_any_auditory_op : Wait_for_any_auditory_object AND_STORE_UNDER TAGNAME
+wait_any_auditory_op > [GOMS_Operator_Sptr_t op] 
+			: 
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			WAIT_ANY_AUDITORY
+			AND_STORE_UNDER 
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($3->getText());
+				$op = new GOMS_Wait_Auditory_Operator(arg_list_p, tag_p);
+				// Normal_out << "wait_any_auditory_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Wait_for_any_auditory_object arguments not found" << endl;>>
+
+// get_task_op: GET_TASK prop_value_arg_list AND_STORE_UNDER TAGNAME
+// Get_task_item_whose ... and_store_under <tag>
+get_task_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			GET_TASK
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Get_Task_Operator(arg_list_p, tag_p);
+				// Normal_out << "Get_task_item_whose built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Get_task_item_whose arguments not found" << endl;>>
+			
+// write_task_op: WRITE_TASK prop_value_arg_list
+// Write_task_item_whose ...  and_store_under <tag>
+write_task_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			WRITE_TASK
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Write_Task_Operator(arg_list_p, tag_p);
+//				Normal_out << "Write_task_item_whose built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Write_task_item_whose arguments not found" << endl;>>
+			
+// update_task_op: UPDATE_TASK arg prop_value_arg_list
+// Update_for_task_item <item name> that ...
+update_task_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t arg_p;
+			>>
+			UPDATE_TASK
+			any_inp_arg>[arg_p]
+			THAT
+			prop_value_arg_list >[arg_list_p]
+				<<
+				$op = new GOMS_Update_Task_Operator(arg_p, arg_list_p);
+//				Normal_out << "write_task_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Update_for_task_item arguments not found" << endl;>>
+			
+// erase_task_prop_op: ERASE_PROP arg arg
+// Erase_task_item_property
+erase_task_prop_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t arg1_p;
+			GOMS_Argument_Sptr_t arg2_p;
+			>>
+			ERASE_PROP
+			any_inp_arg>[arg1_p]
+			any_inp_arg>[arg2_p]
+				<<
+				$op = new GOMS_Erase_Task_Prop_Operator(arg1_p, arg2_p);
+//				Normal_out << "erase_task_prop_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Erase_task_item_property arguments not found" << endl;>>
+			
+// erase_task_object_op: ERASE_OBJECT arg
+erase_task_object_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t arg_p;
+			>>
+			ERASE_OBJECT
+			any_inp_arg>[arg_p]
+				<<
+				$op = new GOMS_Erase_Task_Obj_Operator(arg_p);
+//				Normal_out << "erase_task_object_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Erase_task_item arguments not found" << endl;>>
+			
+			
+			
+// OPERATORS FOR TASK LISTS
+// Create_task_list <<task_list_name>> // does nothing if present already
+// CREATE_TASK_LIST <<task_list_name>> // does nothing if present already
+create_task_list_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			CREATE_TASK_LIST
+			any_inp_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Create_Task_List_Operator(tlist_arg_p);
+//				Normal_out << "Create_task_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Create_task_list arguments not found" << endl;>>
+			
+
+// Clear_task_list <<task_list_name>>  // empties it unconditionally
+// ERASE_TASK_LIST <<task_list_name>>  // empties it unconditionally
+erase_task_list_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			ERASE_TASK_LIST
+			any_inp_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Erase_Task_List_Operator(tlist_arg_p);
+//				Normal_out << "Erase_task_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Erase_task_list arguments not found" << endl;>>
+			
+
+// Get_size_of_task_list <task_list_name>> and_store_under <tag>  0, 1, 2, etc
+// GET_SIZE_OF <task_list_name>> AND_STORE_UNDER TAGNAME
+get_size_of_task_list_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tag_p;
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			GET_SIZE_OF
+			any_inp_arg>[tlist_arg_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Get_Size_Of_Task_List_Operator(tlist_arg_p, tag_p);
+				// Normal_out << "Get_size_of_task_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Get_size_of_task_list arguments not found" << endl;>>
+			
+
+// Find_item_whose <<property>> is <<value>>... in_task_list <<task_list_name>> and_store_under <tag>
+// FIND_ITEM_WHOSE <<property>> is <<value>>... IN_TASK_LIST <<task_list_name>> AND_STORE_UNDER TAGNAME
+find_task_item_whose_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			FIND_ITEM_WHOSE
+			prop_value_arg_list >[arg_list_p]
+			IN_TASK_LIST
+			any_inp_arg>[tlist_arg_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($6->getText());
+				$op = new GOMS_Find_Task_Item_Whose_Operator(tlist_arg_p, arg_list_p, tag_p);
+				// Normal_out << "Find_item_whose built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Find_item_whose arguments not found" << endl;>>
+			
+
+// Find_first_item_in_task_list <<task_list_name>> and_store_under <tag>
+// FIND_FIRST_ITEM <<task_list_name>> AND_STORE_UNDER TAGNAME
+find_first_item_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tag_p;
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			FIND_FIRST_ITEM
+			any_inp_arg>[tlist_arg_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Find_First_Item_Operator(tlist_arg_p, tag_p);
+				// Normal_out << "Find_first_item_in_task_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Find_first_item_in_task_list arguments not found" << endl;>>
+			
+
+// Find_last_item_in_task_list <<task_list_name>> and_store_under <tag>
+// FIND_LAST_ITEM <<task_list_name>> AND_STORE_UNDER TAGNAME
+find_last_item_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tag_p;
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			FIND_LAST_ITEM
+			any_inp_arg>[tlist_arg_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Find_Last_Item_Operator(tlist_arg_p, tag_p);
+				// Normal_out << "Find_last_item_in_task_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Find_last_item_in_task_list arguments not found" << endl;>>
+			
+
+// Find_item_after <<task_item_name>> and_store_under <tag>
+// FIND_ITEM_AFTER <<task_item_name>> AND_STORE_UNDER TAGNAME
+find_item_after_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tag_p;
+			GOMS_Argument_Sptr_t titem_arg_p;
+			>>
+			FIND_ITEM_AFTER
+			any_inp_arg>[titem_arg_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Find_Item_After_Operator(titem_arg_p, tag_p);
+				// Normal_out << "Find_item_after built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Find_item_after arguments not found" << endl;>>
+			
+// Find_item_before <<task_item_name>> and_store_under <tag>
+// FIND_ITEM_BEFORE <<task_item_name>> AND_STORE_UNDER TAGNAME
+find_item_before_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tag_p;
+			GOMS_Argument_Sptr_t titem_arg_p;
+			>>
+			FIND_ITEM_BEFORE
+			any_inp_arg>[titem_arg_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_Find_Item_Before_Operator(titem_arg_p, tag_p);
+				// Normal_out << "Find_item_before built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Find_item_before arguments not found" << endl;>>
+			
+
+
+// Append_item <<task_item_name>> to_task_list <<task_list_name>>
+// APPEND_ITEM <<task_item_name>> TO_TASK_LIST <<task_list_name>>
+append_item_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			GOMS_Argument_Sptr_t titem_arg_p;
+			>>
+			APPEND_ITEM
+			simple_arg>[titem_arg_p]
+			TO_TASK_LIST
+			simple_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Append_Item_Operator(tlist_arg_p, titem_arg_p);
+				// Normal_out << "Append_item built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Append_item arguments not found" << endl;>>
+
+// Prepend_item <<task_item_name>> to_task_list <<task_list_name>>
+// PREPEND_ITEM <<task_item_name>> TO_TASK_LIST <<task_list_name>>
+preprend_item_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			GOMS_Argument_Sptr_t titem_arg_p;
+			>>
+			PREPEND_ITEM
+			simple_arg>[titem_arg_p]
+			TO_TASK_LIST
+			simple_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Prepend_Item_Operator(tlist_arg_p, titem_arg_p);
+				// Normal_out << "Prepend_item built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Prepend_item arguments not found" << endl;>>
+
+
+// Insert_item <<task_item_name>> after <<task_item_name>> in_task_list <<task_list_name>>
+// INSERT_ITEM <<task_item_name>> AFTER <<task_item_name>> IN_TASK_LIST <<task_list_name>>
+//insert_item_after_op > [GOMS_Operator_Sptr_t op]
+//			:
+//			<<
+//			GOMS_Argument_Sptr_t tlist_arg_p;
+//			GOMS_Argument_Sptr_t titem_arg_p;
+//			GOMS_Argument_Sptr_t titem_loc_arg_p;
+//			>>
+//			INSERT_ITEM
+//			simple_arg>[titem_arg_p]
+//			AFTER
+//			simple_arg>[titem_loc_arg_p]
+//			IN_TASK_LIST
+//			simple_arg>[tlist_arg_p]
+//				<<
+//				$op = new GOMS_Insert_After_Operator(tlist_arg_p, titem_arg_p, titem_loc_arg_p);
+//				// Normal_out << "Insert_item ... after built" << endl;
+//				>>
+//			;
+//				<<Normal_out << "*** Insert_item ... after arguments not found" << endl;>>
+
+
+// Insert_item <<task_item_name>> before <<task_item_name>> in_task_list <<task_list_name>>
+// INSERT_ITEM <<task_item_name>> BEFORE <<task_item_name>> IN_TASK_LIST <<task_list_name>>
+insert_item_before_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			GOMS_Argument_Sptr_t titem_arg_p;
+			GOMS_Argument_Sptr_t titem_loc_arg_p;
+			>>
+			INSERT_ITEM
+			simple_arg>[titem_arg_p]
+			BEFORE
+			simple_arg>[titem_loc_arg_p]
+			IN_TASK_LIST
+			simple_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Insert_Before_Operator(tlist_arg_p, titem_arg_p, titem_loc_arg_p);
+				// Normal_out << "Insert_item ... before built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Insert_item ... before arguments not found" << endl;>>
+
+
+// Write_for_item <<task_item_name>> in_task_list <<task_list_name>> that <<property>> is <<value>>...
+// WRITE_FOR_ITEM <<task_item_name>> IN_TASK_LIST <<task_list_name>> that <<property>> is <<value>>...
+//write_item_op > [GOMS_Operator_Sptr_t op]
+//			:
+//			<<
+//			GOMS_Argument_Sptr_t tlist_arg_p;
+//			GOMS_Argument_Sptr_t titem_arg_p;
+//			GOMS_Argument_Sptr_List_t arg_list_p;
+//			>>
+//			WRITE_FOR_ITEM
+//			simple_arg>[titem_arg_p]
+//			IN_TASK_LIST
+//			simple_arg>[tlist_arg_p]
+//			THAT
+//			prop_value_arg_list >[arg_list_p]
+//				<<
+//				$op = new GOMS_Task_Write_Item_Operator(tlist_arg_p, titem_arg_p, arg_list_p);
+//				Normal_out << "Write_for_item built" << endl;
+//				>>
+//			;
+//				<<Normal_out << "*** Write_for_item arguments not found" << endl;>>
+			
+
+// Remove_item <<task_item_name>> from_task_list <<task_list_name>>
+// REMOVE_ITEM <<task_item_name>> FROM_TASK_LIST <<task_list_name>>
+remove_item_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			GOMS_Argument_Sptr_t titem_arg_p;
+			>>
+			REMOVE_ITEM
+			any_inp_arg>[titem_arg_p]
+			FROM_TASK_LIST
+			any_inp_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Remove_Item_Operator(tlist_arg_p, titem_arg_p);
+				// Normal_out << "Remove_item built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Remove_item arguments not found" << endl;>>
+
+
+// Remove_first_item_from_task_list <<task_list_name>>
+// REMOVE_FIRST <<task_list_name>>
+remove_first_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			REMOVE_FIRST
+			any_inp_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Remove_First_Operator(tlist_arg_p);
+//				Normal_out << "Remove_first_item_from_task_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Remove_first_item_from_task_list arguments not found" << endl;>>
+			
+
+
+// Remove_last_item_from_task_list <<task_list_name>>
+// REMOVE_LAST <<task_list_name>>
+remove_last_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_t tlist_arg_p;
+			>>
+			REMOVE_LAST
+			any_inp_arg>[tlist_arg_p]
+				<<
+				$op = new GOMS_Remove_Last_Operator(tlist_arg_p);
+//				Normal_out << "Remove_last_item_from_task_list built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Remove_last_item_from_task_list arguments not found" << endl;>>
+			
+// get_device_op: GET_DEVICE prop_value_arg_list AND_STORE_UNDER TAGNAME
+// Get_from_device ...  and_store_under <tag>
+get_device_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			GET_DEVICE
+			prop_value_arg_list >[arg_list_p]
+			AND_STORE_UNDER
+			TAGNAME
+				<<
+				// the tag argument is a constant; won't be resolved
+				tag_p = new GOMS_Constant_Argument($4->getText());
+				$op = new GOMS_HLGet_Device_Operator(arg_list_p, tag_p);
+//				Normal_out << "Get_from_device built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Get_from_device arguments not found" << endl;>>
+			
+// put_device_op: PUT_DEVICE prop_value_arg_list
+// Put_to_device ...  
+put_device_op > [GOMS_Operator_Sptr_t op]
+			:
+			<<
+			GOMS_Argument_Sptr_List_t arg_list_p;
+			GOMS_Argument_Sptr_t tag_p;
+			>>
+			PUT_DEVICE
+			prop_value_arg_list >[arg_list_p]
+				<<
+				$op = new GOMS_HLPut_Device_Operator(arg_list_p);
+//				Normal_out << "Put_to_device built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Put_to_device arguments not found" << endl;>>
+
+			
+// mental_op : MENTAL (STRING | IDENTIFIER)
+mental_op > [GOMS_Operator_Sptr_t op]
+			: <<Symbol name_arg, doc_arg;>>
+			MENTAL
+				<<
+				name_arg = $1->getText();
+				>>
+			(
+			| STRING
+				<<
+				doc_arg = $1->getText();
+				>>
+			| IDENTIFIER
+				<<
+				doc_arg = $1->getText();
+				>>
+			)
+				<<
+				$op = new GOMS_Mental_Operator(name_arg, doc_arg);
+				// Normal_out << "mental_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** mental_op arguments not found" << endl;>>
+
+			
+// *** Manual operators	***	
+
+// key_op : KEYSTROKE any_inp_arg
+key_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			KEYSTROKE any_inp_arg>[a_p]
+				<<
+				$op = new GOMS_Keystroke_Operator(a_p);
+				// $op->display();
+				// Normal_out << "key_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Keystroke arguments not found" << endl;>>
+
+// type_op : TYPE_IN any_inp_arg
+type_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			TYPE_IN any_inp_arg>[a_p]
+				<<
+				$op = new GOMS_Type_In_Operator(a_p);
+				// $op->display();
+				// Normal_out << "type_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Type_in arguments not found" << endl;>>
+
+// home_op : HOME_TO simple_arg
+home_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			HOME_TO simple_arg>[a_p]
+				<<
+				$op = new GOMS_Home_Operator(a_p);
+				// $op->display();
+				// Normal_out << "home_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Home_to arguments not found" << endl;>>
+
+// point_op : POINT_TO simple_arg
+// disabled: point_op : ((POINT_TO simple_arg) | POINT) outer parens required
+point_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			(POINT_TO simple_arg>[a_p])
+				<<
+				$op = new GOMS_Point_Operator(a_p);
+				// $op->display();
+				// Normal_out << "point_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Point_to arguments not found" << endl;>>
+
+// hold_op : HOLD_DOWN simple_arg			
+hold_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			HOLD_DOWN simple_arg>[a_p]
+				<<
+				$op = new GOMS_Hold_Operator(a_p);
+				// $op->display();
+				// Normal_out << "hold_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Hold_down arguments not found" << endl;>>
+
+// release_op : RELEASE simple_arg
+release_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			RELEASE simple_arg>[a_p]
+				<<
+				$op = new GOMS_Release_Operator(a_p);
+				// $op->display();
+				// Normal_out << "release_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Release arguments not found" << endl;>>
+
+// click_op : CLICK simple_arg
+click_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			CLICK simple_arg>[a_p]
+				<<
+				$op = new GOMS_Click_Operator(a_p);
+				// $op->display();
+				// Normal_out << "click_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Click arguments not found" << endl;>>
+			
+// dbl_click_op : DBL_CLICK simple_arg			
+dbl_click_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			DBL_CLICK simple_arg>[a_p]
+				<<
+				$op = new GOMS_Double_Click_Operator(a_p);
+				// $op->display();
+				// Normal_out << "dbl_click_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Double_click arguments not found" << endl;>>
+			
+			
+}
+
+// *** Vocal operators	***	
+
+// speak_op : SPEAK any_inp_arg
+speak_op > [GOMS_Operator_Sptr_t op] :
+			<<GOMS_Argument_Sptr_t a_p;>>
+			SPEAK any_inp_arg>[a_p]
+				<<
+				$op = new GOMS_Speak_Operator(a_p);
+				// $op->display();
+				// Normal_out << "speak_op built" << endl;
+				>>
+			;
+				<<Normal_out << "*** Speak arguments not found" << endl;>>
+
